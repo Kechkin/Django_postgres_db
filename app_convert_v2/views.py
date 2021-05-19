@@ -1,10 +1,10 @@
 import psycopg2 as psycopg2
 from aifc import Error
-
 from django.contrib.auth import login
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from datetime import datetime
+
 from app_convert_v2.forms import *
 
 # Database connection
@@ -20,15 +20,20 @@ except (Exception, Error) as error:
     print("Ошибка при работе с PostgreSQL", error)
 
 
-def test_decor(func):
+def valid_key_decor(func):
     def wrapped(request):
-        key = request.session.session_key
-        print(key)
+        if request.session.session_key:  # request.user.is_authenticated
+            if request.COOKIES.get('csrftoken') in request.headers['Cookie']:
+                return func(request)
+        else:
+            return HttpResponse('Unauthorized', status=401)
+    return wrapped
+
+
+def valid_request_decor(func):
+    def wrapped(request):
         if request.method == "POST" and 'Content-Type' in request.headers:
             return func(request)
-        else:
-            return HttpResponse("No Access")
-
     return wrapped
 
 
@@ -45,6 +50,7 @@ def user_login(request):
     return render(request, "app_convert_v2/login.html", {"form": form})
 
 
+@valid_key_decor
 def index(request):
     search_post_form = search_form(request.POST)
     add_post_form = add_form(request.POST)
@@ -54,7 +60,8 @@ def index(request):
                    "convert_post_form": convert_post_form})
 
 
-@test_decor
+@valid_key_decor
+@valid_request_decor
 def search(request):
     form = search_form(request.POST)
     if form.is_valid():
@@ -77,7 +84,8 @@ def search(request):
             return HttpResponse("Нет такой даты или валюты")
 
 
-@test_decor
+@valid_key_decor
+@valid_request_decor
 def add_data(request):
     form = add_form(request.POST)
     if form.is_valid():
@@ -93,7 +101,8 @@ def add_data(request):
     return HttpResponse("Error")
 
 
-@test_decor
+@valid_key_decor
+@valid_request_decor
 def converter_to(request):
     form = convert_form(request.POST)
     if form.is_valid():

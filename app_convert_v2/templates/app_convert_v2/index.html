@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="{% static 'css/main.css' %}" />
 </head>
 <body>
-    {%if request.user.is_authenticated%}
     <div class="main_block">
         <div class="add_data">
             <form action="add_data/" method="post">
@@ -36,7 +35,6 @@
             </form>
         </div>
     </div>
-    {%endif%}
 </body>
 </html>
 
